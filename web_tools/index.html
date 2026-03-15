@@ -1,22 +1,25 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="content-type" content="text/html; charset=utf-8">
 	<title>电子价签蓝牙控制器</title>
 	<style>
-		#tool-box>* {
+		#tool-box > * {
 			margin-right: 5px;
 		}
+
 		* {
 			padding: 0;
 			margin: 0;
 		}
-		button,a {
+
+		button, a {
 			padding: 2px;
 			margin: 2px;
 			display: inline-block;
 		}
+
 		body {
 			padding: 20px;
 			overflow-y: hidden;
@@ -37,456 +40,457 @@
 		let reconnectTrys = 0;
 
 		function delay(delayInms) {
-		  return new Promise(resolve => {
-			setTimeout(() => {
-			  resolve(2);
-			}, delayInms);
-		  });
+		return new Promise(resolve => {
+		setTimeout(() => {
+		resolve(2);
+		}, delayInms);
+		});
 		}
 
 		function resetVariables() {
-			gattServer = null;
-			epdService = null;
-			epdCharacteristic = null;
-			rxtxCharacteristic = null;
-			rxtxService = null;
-			document.getElementById("log").value = '';
+		gattServer = null;
+		epdService = null;
+		epdCharacteristic = null;
+		rxtxCharacteristic = null;
+		rxtxService = null;
+		document.getElementById("log").value = '';
 		}
 
 		async function handleError(error) {
-			console.log(error);
-			resetVariables();
-			if (bleDevice == null)
-				return;
-			if (reconnectTrys <= 5) {
-				reconnectTrys++;
-				await connect();
-			}
-			else {
-				addLog("Was not able to connect, aborting");
-				reconnectTrys = 0;
-			}
+		console.log(error);
+		resetVariables();
+		if (bleDevice == null)
+		return;
+		if (reconnectTrys <= 5) {
+		reconnectTrys++;
+		await connect();
+		}
+		else {
+		addLog("Was not able to connect, aborting");
+		reconnectTrys = 0;
+		}
 		}
 
 		async function sendCommand(cmd) {
-			if (epdCharacteristic) {
-				await epdCharacteristic.writeValueWithResponse(cmd)
-			} else {
-				addLog('服务不可用。蓝牙链接上了吗？')
-			}
+		if (epdCharacteristic) {
+		await epdCharacteristic.writeValueWithResponse(cmd)
+		} else {
+		addLog('服务不可用。蓝牙链接上了吗？')
+		}
 		}
 
 		async function clearScreen(cmd) {
-			addLog('刷屏')
-			await triggerEpdCmd(`00${cmd}`);
-			await triggerEpdCmd('01')
+		addLog('刷屏')
+		await triggerEpdCmd(`00${cmd}`);
+		await triggerEpdCmd('01')
 		}
 
 		async function rxTxSendCommand(cmd) {
-		  if (rxtxCharacteristic) {
-			await rxtxCharacteristic.writeValueWithResponse(cmd);
-		  } else {
-			  addLog('服务不可用。蓝牙链接上了吗？')
-		  }
+		if (rxtxCharacteristic) {
+		await rxtxCharacteristic.writeValueWithResponse(cmd);
+		} else {
+		addLog('服务不可用。蓝牙链接上了吗？')
+		}
 		}
 
 		async function upload_tiff_image() {
-			const startTime = new Date().getTime();
-			const buffer = await document.getElementById('tiff_file').files[0].arrayBuffer();
-			const arr = bytesToHex(buffer);
+		const startTime = new Date().getTime();
+		const buffer = await document.getElementById('tiff_file').files[0].arrayBuffer();
+		const arr = bytesToHex(buffer);
 
-			addLog(`开始上传tiff, 大小 ${arr.length/1024}KB`);
+		addLog(`开始上传tiff, 大小 ${arr.length/1024}KB`);
 
-			await sendCommand(hexToBytes("0000"));
+		await sendCommand(hexToBytes("0000"));
 
-			await sendCommand(hexToBytes("020000"));
+		await sendCommand(hexToBytes("020000"));
 
-			const step = 480;
-			let partIndex = 0;
-			for (let i = 0; i < arr.length; i += step) {
-				addLog(`正在上传第${partIndex+1}块. 块大小: ${step + 1}byte`);
-				await sendCommand(hexToBytes("03" + arr.slice(i, i + step)));
-				partIndex += 1;
-			}
+		const step = 480;
+		let partIndex = 0;
+		for (let i = 0; i < arr.length; i += step) {
+		addLog(`正在上传第${partIndex+1}块. 块大小: ${step + 1}byte`);
+		await sendCommand(hexToBytes("03" + arr.slice(i, i + step)));
+		partIndex += 1;
+		}
 
-			await sendCommand(hexToBytes("04"));
-			addLog(`上传tiff完成，耗时${(new Date().getTime() - startTime)/1000}s`);
+		await sendCommand(hexToBytes("04"));
+		addLog(`上传tiff完成，耗时${(new Date().getTime() - startTime)/1000}s`);
 		}
 
 		async function sendBufferData(value, type) {
-			addLog(`开始发送图片模式:${type}, 大小 ${value.length/2/1024}KB`);
-			let code = 'ff';
-			if (type === 'bwr') {
-				code = '00';
-			}
-			const step = 480;
-			let partIndex = 0;
-			for (let i = 0; i < value.length; i += step) {
-				addLog(`正在发送第${partIndex+1}块. 块大小: ${step/2 + 4}byte. 起始位置: ${i/2}`);
-				await sendCommand(hexToBytes("03" + code + intToHex(i / 2, 2) + value.substring(i, i + step)));
-				partIndex += 1;
-			}
+		addLog(`开始发送图片模式:${type}, 大小 ${value.length/2/1024}KB`);
+		let code = 'ff';
+		if (type === 'bwr') {
+		code = '00';
+		}
+		const step = 480;
+		let partIndex = 0;
+		for (let i = 0; i < value.length; i += step) {
+		addLog(`正在发送第${partIndex+1}块. 块大小: ${step/2 + 4}byte. 起始位置: ${i/2}`);
+		await sendCommand(hexToBytes("03" + code + intToHex(i / 2, 2) + value.substring(i, i + step)));
+		partIndex += 1;
+		}
 		}
 
 		async function upload_image() {
-			const canvas = document.getElementById('canvas');
+		const canvas = document.getElementById('canvas');
 
 
-			const startTime = new Date().getTime();
+		const startTime = new Date().getTime();
 
 
-			await sendCommand(hexToBytes("0000"));
+		await sendCommand(hexToBytes("0000"));
 
-			await sendCommand(hexToBytes("020000"));
+		await sendCommand(hexToBytes("020000"));
 
-			await sendBufferData(bytesToHex(canvas2bytes(canvas)), 'bw')
-			await sendBufferData(bytesToHex(canvas2bytes(canvas, 'bwr')), 'bwr')
+		await sendBufferData(bytesToHex(canvas2bytes(canvas)), 'bw')
+		await sendBufferData(bytesToHex(canvas2bytes(canvas, 'bwr')), 'bwr')
 
-			await sendCommand(hexToBytes("0101"))
+		await sendCommand(hexToBytes("0101"))
 
-			addLog(`刷新完成，耗时${(new Date().getTime() - startTime)/1000}s`);
+		addLog(`刷新完成，耗时${(new Date().getTime() - startTime)/1000}s`);
 		}
 
 		async function upload_epd_buffer() {
-			const startTime = new Date().getTime();
-			const value = document.getElementById('buffer').value.replace(/(?:\r\n|\r|\n|,|0x| )/g, '');
+		const startTime = new Date().getTime();
+		const value = document.getElementById('buffer').value.replace(/(?:\r\n|\r|\n|,|0x| )/g, '');
 
-			addLog(`开始刷新屏幕内存, 大小 ${value.length/1024}KB`);
+		addLog(`开始刷新屏幕内存, 大小 ${value.length/1024}KB`);
 
-			await sendCommand(hexToBytes("0000"));
+		await sendCommand(hexToBytes("0000"));
 
-			await sendCommand(hexToBytes("020000"));
+		await sendCommand(hexToBytes("020000"));
 
-			await sendBufferData(value, 'bw');
+		await sendBufferData(value, 'bw');
 
-			await delay(150);
+		await delay(150);
 
-			await sendCommand(hexToBytes("0101"))
+		await sendCommand(hexToBytes("0101"))
 
-			addLog(`刷新完成，耗时${(new Date().getTime() - startTime)/1000}s`);
+		addLog(`刷新完成，耗时${(new Date().getTime() - startTime)/1000}s`);
 		}
 
 		async function setTime() {
-			const { unixNow, localeTimeString, year, month, day, week } = getUnixTime();
+		const { unixNow, localeTimeString, year, month, day, week } = getUnixTime();
 
-		  	addLog("时间设置为: " + localeTimeString + " : dd" + intToHex(unixNow, 4));
-		  	await rxTxSendCommand(hexToBytes('dd' +
-					[intToHex(unixNow, 4), intToHex(year, 2), intToHex(month, 1), intToHex(day, 1), intToHex(week, 1)].join('')));
+		addLog("时间设置为: " + localeTimeString + " : dd" + intToHex(unixNow, 4));
+		await rxTxSendCommand(hexToBytes('dd' +
+		[intToHex(unixNow, 4), intToHex(year, 2), intToHex(month, 1), intToHex(day, 1), intToHex(week, 1)].join('')));
 
-			await rxTxSendCommand(hexToBytes('e2'))
+		await rxTxSendCommand(hexToBytes('e2'))
 		}
 
 		async function triggerRxTxCmd(cmd) {
-			addLog(`发送指令: ${cmd}`)
-			await rxTxSendCommand(hexToBytes(cmd));
+		addLog(`发送指令: ${cmd}`)
+		await rxTxSendCommand(hexToBytes(cmd));
 		}
 
 		async function triggerEpdCmd(cmd) {
-			addLog(`发送指令: ${cmd}`)
-			await sendCommand(hexToBytes(cmd));
+		addLog(`发送指令: ${cmd}`)
+		await sendCommand(hexToBytes(cmd));
 		}
 
 		function disconnect() {
-			resetVariables();
-			addLog('链接已断开.');
-			document.getElementById("connectbutton").innerHTML = '链接';
+		resetVariables();
+		addLog('链接已断开.');
+		document.getElementById("connectbutton").innerHTML = '链接';
 		}
 
 		async function preConnect() {
-			if (gattServer != null && gattServer.connected) {
-				if (bleDevice != null && bleDevice.gatt.connected)
-					bleDevice.gatt.disconnect();
-			}
-			else {
-				reconnectTrys = 0;
-				bleDevice = await navigator.bluetooth.requestDevice({ optionalServices: ['0000221f-0000-1000-8000-00805f9b34fb', '00001f10-0000-1000-8000-00805f9b34fb', '13187b10-eba9-a3ba-044e-83d3217d9a38'], acceptAllDevices: true });
-				await bleDevice.addEventListener('gattserverdisconnected', disconnect);
-				try {
-					await connect();
-				} catch (e) {
-					await handleError(e);
-				}
-			}
+		if (gattServer != null && gattServer.connected) {
+		if (bleDevice != null && bleDevice.gatt.connected)
+		bleDevice.gatt.disconnect();
+		}
+		else {
+		reconnectTrys = 0;
+		bleDevice = await navigator.bluetooth.requestDevice({ optionalServices: ['0000221f-0000-1000-8000-00805f9b34fb', '00001f10-0000-1000-8000-00805f9b34fb', '13187b10-eba9-a3ba-044e-83d3217d9a38'], acceptAllDevices: true });
+		await bleDevice.addEventListener('gattserverdisconnected', disconnect);
+		try {
+		await connect();
+		} catch (e) {
+		await handleError(e);
+		}
+		}
 		}
 
 		async function connectRXTX() {
-			rxtxService = await gattServer.getPrimaryService('00001f10-0000-1000-8000-00805f9b34fb');
-			addLog('> 找到串口服务');
+		rxtxService = await gattServer.getPrimaryService('00001f10-0000-1000-8000-00805f9b34fb');
+		addLog('> 找到串口服务');
 
-			rxtxCharacteristic = await rxtxService.getCharacteristic('00001f1f-0000-1000-8000-00805f9b34fb');
-			addLog('> 串口服务已链接');
+		rxtxCharacteristic = await rxtxService.getCharacteristic('00001f1f-0000-1000-8000-00805f9b34fb');
+		addLog('> 串口服务已链接');
 		}
 
 		async function reConnect() {
-			connectTrys = 0;
-			if (bleDevice != null && bleDevice.gatt.connected)
-				bleDevice.gatt.disconnect();
-			resetVariables();
-			addLog("重新链接");
-			setTimeout(async function () { await connect(); }, 300);
+		connectTrys = 0;
+		if (bleDevice != null && bleDevice.gatt.connected)
+		bleDevice.gatt.disconnect();
+		resetVariables();
+		addLog("重新链接");
+		setTimeout(async function () { await connect(); }, 300);
 		}
 
 		async function connect() {
-			if (epdCharacteristic == null) {
-				addLog("正在链接: " + bleDevice.name);
+		if (epdCharacteristic == null) {
+		addLog("正在链接: " + bleDevice.name);
 
-				gattServer = await bleDevice.gatt.connect();
-				addLog('> 找到GATT服务器');
+		gattServer = await bleDevice.gatt.connect();
+		addLog('> 找到GATT服务器');
 
-				epdService = await gattServer.getPrimaryService('13187b10-eba9-a3ba-044e-83d3217d9a38');
-				addLog('> 找到可用服务');
+		epdService = await gattServer.getPrimaryService('13187b10-eba9-a3ba-044e-83d3217d9a38');
+		addLog('> 找到可用服务');
 
-				epdCharacteristic = await epdService.getCharacteristic('4b646063-6264-f3a7-8941-e65356ea82fe');
-				addLog('> 服务已连接');
+		epdCharacteristic = await epdService.getCharacteristic('4b646063-6264-f3a7-8941-e65356ea82fe');
+		addLog('> 服务已连接');
 
-				await epdCharacteristic.startNotifications();
+		await epdCharacteristic.startNotifications();
 
-				epdCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
-					console.log('epd ret', bytesToHex(event.target.value.buffer))
-					const count = parseInt('0x'+ bytesToHex(event.target.value.buffer));
-					addLog(`> [来自屏幕]: 收到${count} byte数据`);
-				});
+		epdCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
+		console.log('epd ret', bytesToHex(event.target.value.buffer))
+		const count = parseInt('0x'+ bytesToHex(event.target.value.buffer));
+		addLog(`> [来自屏幕]: 收到${count} byte数据`);
+		});
 
-				document.getElementById("connectbutton").innerHTML = '断开';
-				await connectRXTX();
-			}
+		document.getElementById("connectbutton").innerHTML = '断开';
+		await connectRXTX();
+		}
 		}
 
 		function setStatus(statusText) {
-			document.getElementById("status").innerHTML = statusText;
+		document.getElementById("status").innerHTML = statusText;
 		}
 
 		function addLog(logTXT) {
-			const today = new Date();
-			const time = ("0" + today.getHours()).slice(-2) + ":" + ("0" + today.getMinutes()).slice(-2) + ":" + ("0" + today.getSeconds()).slice(-2) + " : ";
+		const today = new Date();
+		const time = ("0" + today.getHours()).slice(-2) + ":" + ("0" + today.getMinutes()).slice(-2) + ":" + ("0" + today.getSeconds()).slice(-2) + " : ";
 
-			const dom = document.getElementById("log");
+		const dom = document.getElementById("log");
 
-			dom.innerHTML += time + logTXT + '<br>';
-			dom.scrollTop = dom.scrollHeight;
+		dom.innerHTML += time + logTXT + '<br>';
+		dom.scrollTop = dom.scrollHeight;
 		}
 
 		function getUnixTime() {
-			const hourOffset = document.getElementById('hour-offset').value;
-		  	const unixNow = Math.round(Date.now() / 1000)+(60*60*hourOffset)  - new Date().getTimezoneOffset() * 60;
+		const hourOffset = document.getElementById('hour-offset').value;
+		const unixNow = Math.round(Date.now() / 1000)+(60*60*hourOffset)  - new Date().getTimezoneOffset() * 60;
 
-			const date = new Date((unixNow + new Date().getTimezoneOffset() * 60)*1000);
-		  	const localeTimeString = date.toLocaleTimeString();
+		const date = new Date((unixNow + new Date().getTimezoneOffset() * 60)*1000);
+		const localeTimeString = date.toLocaleTimeString();
 
-			return {unixNow, localeTimeString, year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate(), week: date.getDay() || 7}
+		return {unixNow, localeTimeString, year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate(), week: date.getDay() || 7}
 		}
 
 		async function update_image () {
-			const image_file = document.getElementById('image_file');
-			if (image_file.files.length > 0) {
-				const file = image_file.files[0];
+		const image_file = document.getElementById('image_file');
+		if (image_file.files.length > 0) {
+		const file = image_file.files[0];
 
-				const canvas = document.getElementById("canvas");
-				const ctx = canvas.getContext("2d");
+		const canvas = document.getElementById("canvas");
+		const ctx = canvas.getContext("2d");
 
-				const image = new Image();
-				image.src = URL.createObjectURL(file);
-				image.onload = function(event) {
-					URL.revokeObjectURL(this.src);
-					ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
-					convert_dithering()
-				}
-			}
+		const image = new Image();
+		image.src = URL.createObjectURL(file);
+		image.onload = function(event) {
+		URL.revokeObjectURL(this.src);
+		ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
+		convert_dithering()
+		}
+		}
 		}
 
 		function get_position(canvas, x, y){
-			let rect = canvas.getBoundingClientRect()
-			return {
-				x: x - rect.left * (canvas.width/rect.width),
-				y: y - rect.top * (canvas.height/rect.height)
-			}
+		let rect = canvas.getBoundingClientRect()
+		return {
+		x: x - rect.left * (canvas.width/rect.width),
+		y: y - rect.top * (canvas.height/rect.height)
+		}
 		}
 
 		function clear_canvas() {
-			if(confirm('确认清除屏幕?')) {
-				const canvas = document.getElementById('canvas');
-				const ctx = canvas.getContext("2d");
-				ctx.fillStyle = 'white';
-				ctx.fillRect(0, 0, canvas.width, canvas.height);
-			}
+		if(confirm('确认清除屏幕?')) {
+		const canvas = document.getElementById('canvas');
+		const ctx = canvas.getContext("2d");
+		ctx.fillStyle = 'white';
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		}
 		}
 
 		function convert_dithering() {
-			const canvas = document.getElementById('canvas');
-			const ctx = canvas.getContext("2d");
-			const mode = document.getElementById('dithering').value;
-			if (mode.startsWith('bwr')) {
-				ditheringCanvasByPalette(canvas, bwrPalette, mode);
-			} else {
-				dithering(ctx, canvas.width, canvas.height, parseInt(document.getElementById('threshold').value), mode);
-			}
+		const canvas = document.getElementById('canvas');
+		const ctx = canvas.getContext("2d");
+		const mode = document.getElementById('dithering').value;
+		if (mode.startsWith('bwr')) {
+		ditheringCanvasByPalette(canvas, bwrPalette, mode);
+		} else {
+		dithering(ctx, canvas.width, canvas.height, parseInt(document.getElementById('threshold').value), mode);
+		}
 		}
 
 		document.body.onload = () => {
-			setInterval(() => {
-				const { localeTimeString, year, month, day, week } = getUnixTime();
-				document.getElementById('time-setter').innerText = `设置时间为：${year}-${month}-${day} ${localeTimeString} 星期${week}`;
-			}, 1000);
+		setInterval(() => {
+		const { localeTimeString, year, month, day, week } = getUnixTime();
+		document.getElementById('time-setter').innerText = `设置时间为：${year}-${month}-${day} ${localeTimeString} 星期${week}`;
+		}, 1000);
 
-			const canvas = document.getElementById('canvas');
-			const ctx = canvas.getContext("2d");
-			ctx.fillStyle = 'white';
-			ctx.fillRect(0, 0, canvas.width, canvas.height);
+		const canvas = document.getElementById('canvas');
+		const ctx = canvas.getContext("2d");
+		ctx.fillStyle = 'white';
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-			let is_allow_drawing = false;
-			let is_allow_move_editor = false;
-			const image_mode = document.getElementById('canvas-mode');
-			const paint_size = document.getElementById('paint-size');
-			const paint_color = document.getElementById('paint-color');
-			const editor = document.getElementById('edit-font');
-			const font = document.getElementById('font');
-			document.getElementById('dithering').value = 'bwr_Atkinson';
-			image_mode.value = 'paint';
-			paint_color.value = 'black';
-			font.value = '黑体';
+		let is_allow_drawing = false;
+		let is_allow_move_editor = false;
+		const image_mode = document.getElementById('canvas-mode');
+		const paint_size = document.getElementById('paint-size');
+		const paint_color = document.getElementById('paint-color');
+		const editor = document.getElementById('edit-font');
+		const font = document.getElementById('font');
+		document.getElementById('dithering').value = 'bwr_Atkinson';
+		image_mode.value = 'paint';
+		paint_color.value = 'black';
+		font.value = '黑体';
 
-			editor.onmousemove = function (e) {
-				editor.style.fontSize = `${paint_size.value * 10}px`;
-				editor.style.color = paint_color.value;
-				editor.style.fontFamily = font.value;
-				editor.style.fontWeight = 'bold';
+		editor.onmousemove = function (e) {
+		editor.style.fontSize = `${paint_size.value * 10}px`;
+		editor.style.color = paint_color.value;
+		editor.style.fontFamily = font.value;
+		editor.style.fontWeight = 'bold';
 
-				if (is_allow_move_editor) {
-					const {x, y} = get_position(canvas, e.clientX, e.clientY);
-					if (x < 0 || y < 0 || x > canvas.width || y > canvas.height) {
-						return;
-					}
+		if (is_allow_move_editor) {
+		const {x, y} = get_position(canvas, e.clientX, e.clientY);
+		if (x < 0 || y < 0 || x > canvas.width || y > canvas.height) {
+		return;
+		}
 
-					editor.style.left = `${e.clientX-20}px`;
-					editor.style.top = `${e.clientY-20}px`;
+		editor.style.left = `${e.clientX-20}px`;
+		editor.style.top = `${e.clientY-20}px`;
 
-				}
-			}
+		}
+		}
 
-			editor.onmousedown = function (e) {
-				is_allow_move_editor = true;
-			}
+		editor.onmousedown = function (e) {
+		is_allow_move_editor = true;
+		}
 
-			editor.onmouseup = function (e) {
-				is_allow_move_editor = false;
-			}
+		editor.onmouseup = function (e) {
+		is_allow_move_editor = false;
+		}
 
-			document.getElementById('update-text').onclick = function () {
-				if (!editor.value.length) {
-					alert('请先输入文字');
-					return;
-				}
-				editor.style.display = 'none';
-				ctx.beginPath();
-				ctx.font = `bold ${paint_size.value * 10}px ${font.value}`;
-				ctx.fillStyle = paint_color.value;
-				const {x, y} = get_position(canvas, parseInt(editor.style.left), parseInt(editor.style.top) + paint_size.value * 10);
+		document.getElementById('update-text').onclick = function () {
+		if (!editor.value.length) {
+		alert('请先输入文字');
+		return;
+		}
+		editor.style.display = 'none';
+		ctx.beginPath();
+		ctx.font = `bold ${paint_size.value * 10}px ${font.value}`;
+		ctx.fillStyle = paint_color.value;
+		const {x, y} = get_position(canvas, parseInt(editor.style.left), parseInt(editor.style.top) + paint_size.value * 10);
 
-				ctx.fillText(editor.value, x, y);
-			}
+		ctx.fillText(editor.value, x, y);
+		}
 
-			image_mode.onchange = function (e) {
-				if (image_mode.value === 'font') {
-					document.getElementById('update-text').style.display = 'inline-block';
-					document.getElementById('font').style.display = 'inline-block';
+		image_mode.onchange = function (e) {
+		if (image_mode.value === 'font') {
+		document.getElementById('update-text').style.display = 'inline-block';
+		document.getElementById('font').style.display = 'inline-block';
 
-					editor.style.display='block';
-					editor.style.left = `${e.clientX}px`;
-					editor.style.top = `${e.clientY}px`;
-					return;
-				}
-				document.getElementById('update-text').style.display = 'none';
-				document.getElementById('font').style.display = 'none';
-				editor.style.display='none';
-			}
+		editor.style.display='block';
+		editor.style.left = `${e.clientX}px`;
+		editor.style.top = `${e.clientY}px`;
+		return;
+		}
+		document.getElementById('update-text').style.display = 'none';
+		document.getElementById('font').style.display = 'none';
+		editor.style.display='none';
+		}
 
-			paint_size.onchange = function () {
-				if (image_mode.value === 'font') {
-					editor.style.fontSize =  `${paint_size.value * 10}px`;
-				}
-			}
+		paint_size.onchange = function () {
+		if (image_mode.value === 'font') {
+		editor.style.fontSize =  `${paint_size.value * 10}px`;
+		}
+		}
 
-			paint_color.onchange = function () {
-				if (image_mode.value === 'font') {
-					editor.style.color = paint_color.value;
-				}
-			}
+		paint_color.onchange = function () {
+		if (image_mode.value === 'font') {
+		editor.style.color = paint_color.value;
+		}
+		}
 
-			font.onchange = function () {
-				if (image_mode.value === 'font') {
-					editor.style.fontFamily = font.value;
-				}
-			}
+		font.onchange = function () {
+		if (image_mode.value === 'font') {
+		editor.style.fontFamily = font.value;
+		}
+		}
 
-			canvas.onmousedown = function(e) {
-				let ele = get_position(canvas, e.clientX, e.clientY)
-				let { x, y } = ele
+		canvas.onmousedown = function(e) {
+		let ele = get_position(canvas, e.clientX, e.clientY)
+		let { x, y } = ele
 
-				switch (image_mode.value) {
-					case 'paint':
-						is_allow_drawing = true;
-						ctx.beginPath();
-						ctx.moveTo(x, y);
-						break;
-					case 'font':
-						editor.style.display='block';
-						editor.style.left = `${e.clientX}px`;
-						editor.style.top = `${e.clientY}px`;
-						editor.style.fontSize = `${paint_size.value * 10}px`;
-						editor.style.color = paint_color.value;
-						editor.style.fontFamily = font.value;
-						editor.style.fontWeight = 'bold';
+		switch (image_mode.value) {
+		case 'paint':
+		is_allow_drawing = true;
+		ctx.beginPath();
+		ctx.moveTo(x, y);
+		break;
+		case 'font':
+		editor.style.display='block';
+		editor.style.left = `${e.clientX}px`;
+		editor.style.top = `${e.clientY}px`;
+		editor.style.fontSize = `${paint_size.value * 10}px`;
+		editor.style.color = paint_color.value;
+		editor.style.fontFamily = font.value;
+		editor.style.fontWeight = 'bold';
 
-						break
-					default:
-						break;
-				}
-			};
+		break
+		default:
+		break;
+		}
+		};
 
-			canvas.onmousemove = (e) => {
-				let ele = get_position(canvas, e.clientX, e.clientY)
-				let { x, y } = ele;
-				switch (image_mode.value) {
-					case 'paint':
-						if (is_allow_drawing) {
-							ctx.lineWidth = paint_size.value;
-							ctx.strokeStyle=paint_color.value;
-							ctx.lineTo(x, y);
-							ctx.stroke();
-						}
-						break;
-					case 'font':
-						break;
+		canvas.onmousemove = (e) => {
+		let ele = get_position(canvas, e.clientX, e.clientY)
+		let { x, y } = ele;
+		switch (image_mode.value) {
+		case 'paint':
+		if (is_allow_drawing) {
+		ctx.lineWidth = paint_size.value;
+		ctx.strokeStyle=paint_color.value;
+		ctx.lineTo(x, y);
+		ctx.stroke();
+		}
+		break;
+		case 'font':
+		break;
 
-					default:
-						break;
-				}
-			}
+		default:
+		break;
+		}
+		}
 
-			canvas.onmouseup = function() {
-				switch (image_mode.value) {
-					case 'paint':
-						is_allow_drawing = false;
-						break;
+		canvas.onmouseup = function() {
+		switch (image_mode.value) {
+		case 'paint':
+		is_allow_drawing = false;
+		break;
 
-					case 'font':
-						editor.focus();
-						is_allow_move_editor = false;
-						break;
+		case 'font':
+		editor.focus();
+		is_allow_move_editor = false;
+		break;
 
-					default:
-						break;
-				}
-			}
+		default:
+		break;
+		}
+		}
 
-			canvas.onmouseleave = function () {
-				if (image_mode.value === 'paint') {
-					is_allow_drawing = false;
-				}
-			}
+		canvas.onmouseleave = function () {
+		if (image_mode.value === 'paint') {
+		is_allow_drawing = false;
+		}
+		}
 		}
 	</script>
-	<h2>电子价签蓝牙控制器<a style="margin-left: 130px;" href="uart_flasher.html">串口升级</a><a href="ATC_TLSR_PaperBLEcontrol.html">蓝牙OTA升级</a>
+	<h2>
+		电子价签蓝牙控制器<a style="margin-left: 130px;" href="uart_flasher.html">串口升级</a><a href="ATC_TLSR_PaperBLEcontrol.html">蓝牙OTA升级</a>
 	</h2>
 
 
@@ -556,7 +560,7 @@
 			<button onclick="clear_canvas()">清屏</button>
 		</div>
 		<input id="edit-font" style="max-width: 296px; position: absolute; border: black solid 1px;background-color: rgba(0,0,0,0);display: none;overflow: auto" />
-		<canvas id="canvas" width="296" height="128" style="border: black solid 1px;"></canvas>
+		<canvas id="canvas" width="296" height="152" style="border: black solid 1px;"></canvas>
 		<br>
 		<button onclick="upload_image()" style="font-weight: bold">立即上传到屏幕</button>
 		<br>
