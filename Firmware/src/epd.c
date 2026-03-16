@@ -1,4 +1,4 @@
-#include <stdint.h>
+﻿#include <stdint.h>
 #include "etime.h"
 #include "tl_common.h"
 #include "main.h"
@@ -200,10 +200,12 @@ _attribute_ram_code_ void TIFFDraw(TIFFDRAW *pDraw)
 {
     uint8_t uc = 0, ucSrcMask, ucDstMask, *s, *d;
     int x, y;
+    int bytes_per_col = epd_height / 8;
+    int start_offset = (epd_width - 1) * bytes_per_col;
 
     s = pDraw->pPixels;
     y = pDraw->y;                          // current line
-    d = &epd_buffer[(249 * 16) + (y / 8)]; // rotated 90 deg clockwise
+    d = &epd_buffer[start_offset + (y / 8)]; // rotated 90 deg clockwise
     ucDstMask = 0x80 >> (y & 7);           // destination mask
     ucSrcMask = 0;                         // src mask
     for (x = 0; x < pDraw->iWidth; x++)
@@ -217,7 +219,7 @@ _attribute_ram_code_ void TIFFDraw(TIFFDRAW *pDraw)
         }
         if (!(uc & ucSrcMask))
         { // black pixel
-            d[-(x * 16)] &= ~ucDstMask;
+            d[-(x * bytes_per_col)] &= ~ucDstMask;
         }
         ucSrcMask >>= 1;
     }
@@ -227,8 +229,8 @@ _attribute_ram_code_ void epd_display_tiff(uint8_t *pData, int iSize)
 {
     // test G4 decoder
     epd_clear();
-    TIFF_openRAW(&tiff, 250, 122, BITDIR_MSB_FIRST, pData, iSize, TIFFDraw);
-    TIFF_setDrawParameters(&tiff, 65536, TIFF_PIXEL_1BPP, 0, 0, 250, 122, NULL);
+    TIFF_openRAW(&tiff, 296, 152, BITDIR_MSB_FIRST, pData, iSize, TIFFDraw);
+    TIFF_setDrawParameters(&tiff, 65536, TIFF_PIXEL_1BPP, 0, 0, 296, 152, NULL);
     TIFF_decode(&tiff);
     TIFF_close(&tiff);
     EPD_Display(epd_buffer, NULL, epd_buffer_size, 1);
