@@ -157,8 +157,8 @@ _attribute_ram_code_ void epd_display_tiff(uint8_t* pData, int iSize)
 {
     // test G4 decoder
     epd_clear();
-    TIFF_openRAW(&tiff, 296, 152, BITDIR_MSB_FIRST, pData, iSize, TIFFDraw);
-    TIFF_setDrawParameters(&tiff, 65536, TIFF_PIXEL_1BPP, 0, 0, 296, 152, NULL);
+    TIFF_openRAW(&tiff, epd_width, epd_height, BITDIR_MSB_FIRST, pData, iSize, TIFFDraw);
+    TIFF_setDrawParameters(&tiff, 65536, TIFF_PIXEL_1BPP, 0, 0, epd_width, epd_height, NULL);
     TIFF_decode(&tiff);
     TIFF_close(&tiff);
     EPD_Display(epd_buffer, NULL, epd_buffer_size, 1);

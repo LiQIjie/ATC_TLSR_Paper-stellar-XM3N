@@ -1,6 +1,10 @@
-#pragma once
+﻿#pragma once
 #include "etime.h"
-#define epd_height 152
+// EPD hardware (SSD1675/SSD1680) RAM X address range is 0x00-0x13, i.e. 20 bytes = 160 pixels.
+// This value must be 160 (not 152) to match the hardware. The web canvas height must also be 160.
+// If set to 152, BLE uploaded images will be misaligned because canvas2bytes packs 19 bytes/column
+// but the hardware expects 20 bytes/column, causing column data shift across the entire display.
+#define epd_height 160
 #define epd_width 296
 #define epd_buffer_size ((epd_height/8) * epd_width)
 

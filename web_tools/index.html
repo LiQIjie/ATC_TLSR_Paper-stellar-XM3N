@@ -143,7 +143,13 @@
 		await sendCommand(hexToBytes("020000"));
 
 		await sendBufferData(bytesToHex(canvas2bytes(canvas)), 'bw')
-		await sendBufferData(bytesToHex(canvas2bytes(canvas, 'bwr')), 'bwr')
+        // 仅当选择的抖动模式为 bwr 系列时，才上传 bwr 数据
+        const ditheringMode = document.getElementById('dithering').value;
+        if (ditheringMode && ditheringMode.startsWith('bwr')) {
+            await sendBufferData(bytesToHex(canvas2bytes(canvas, 'bwr')), 'bwr');
+        } else {
+            addLog('当前抖动模式不是黑白红（bwr），跳过 bwr 数据上传');
+        }
 
 		await sendCommand(hexToBytes("0101"))
 
@@ -560,6 +566,8 @@
 			<button onclick="clear_canvas()">清屏</button>
 		</div>
 		<input id="edit-font" style="max-width: 296px; position: absolute; border: black solid 1px;background-color: rgba(0,0,0,0);display: none;overflow: auto" />
+		<!-- canvas height must be 160 to match firmware epd_height (EPD hardware X address range 0x00-0x13 = 20 bytes = 160 pixels) -->
+		<!-- canvas2bytes packs pixels column-major with height/8 bytes per column; if height != 160, data misaligns with EPD RAM -->
 		<canvas id="canvas" width="296" height="160" style="border: black solid 1px;"></canvas>
 		<br>
 		<button onclick="upload_image()" style="font-weight: bold">立即上传到屏幕</button>

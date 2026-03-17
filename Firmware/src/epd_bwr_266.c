@@ -139,41 +139,42 @@ _attribute_ram_code_ uint8_t EPD_BWR_266_read_temp(void)
 }
 
 _attribute_ram_code_ uint8_t EPD_BWR_266_Display(unsigned char *image, int size, uint8_t full_or_partial) {
-    uint8_t epd_temperature = 0 ;
+uint8_t epd_temperature = 0 ;
 
-    // SW Reset
-    EPD_WriteCmd(0x12);
+// SW Reset
+EPD_WriteCmd(0x12);
 
-    EPD_CheckStatus_inverted(100);
+EPD_CheckStatus_inverted(100);
 
-    // Set Analog Block control
-    EPD_WriteCmd(0x74);
-    EPD_WriteData(0x54);
-    // Set Digital Block control
-    EPD_WriteCmd(0x7E);
-    EPD_WriteData(0x3B);
+// Set Analog Block control
+EPD_WriteCmd(0x74);
+EPD_WriteData(0x54);
+// Set Digital Block control
+EPD_WriteCmd(0x7E);
+EPD_WriteData(0x3B);
 
-    // Booster soft start
-    EPD_WriteCmd(0x0C);
-    EPD_WriteData(0x8B);
-    EPD_WriteData(0x9C);
-    EPD_WriteData(0x96);
-    EPD_WriteData(0x0F);
+// Booster soft start
+EPD_WriteCmd(0x0C);
+EPD_WriteData(0x8B);
+EPD_WriteData(0x9C);
+EPD_WriteData(0x96);
+EPD_WriteData(0x0F);
 
-    // Driver output control
-    EPD_WriteCmd(0x01);
-    EPD_WriteData(0x28);
-    EPD_WriteData(0x01);
-    EPD_WriteData(0x01);
+// Driver output control
+EPD_WriteCmd(0x01);
+EPD_WriteData(0x28);
+EPD_WriteData(0x01);
+EPD_WriteData(0x01);
 
-    // Data entry mode setting
-    EPD_WriteCmd(0x11);
-    EPD_WriteData(0x01);
+// Data entry mode setting
+EPD_WriteCmd(0x11);
+EPD_WriteData(0x01);
 
-    // Set RAM X- Address Start/End
-    EPD_WriteCmd(0x44);
-    EPD_WriteData(0x00);
-    EPD_WriteData(0x12);
+// Set RAM X- Address Start/End
+// X end = 0x13 -> (0x13+1)*8 = 160 pixels, must match epd_height and canvas height
+EPD_WriteCmd(0x44);
+EPD_WriteData(0x00);
+EPD_WriteData(0x13);
 
     // Set RAM Y- Address Start/End
     EPD_WriteCmd(0x45);
@@ -256,49 +257,48 @@ _attribute_ram_code_ uint8_t EPD_BWR_266_Display(unsigned char *image, int size,
 
     return epd_temperature;
 }
-#define EPD_2IN13_V2_WIDTH       152//122
-#define EPD_2IN13_V2_HEIGHT      296//250
 
 _attribute_ram_code_ uint8_t EPD_BWR_266_Display_BWR(unsigned char *image, unsigned char *red_image, int size, uint8_t full_or_partial) {
-       if (red_image == NULL) {
-        return EPD_BWR_266_Display(image, size, full_or_partial);
-    }
+   if (red_image == NULL) {
+    return EPD_BWR_266_Display(image, size, full_or_partial);
+}
 
-    uint8_t epd_temperature = 0 ;
+uint8_t epd_temperature = 0 ;
 
-    // SW Reset
-    EPD_WriteCmd(0x12);
+// SW Reset
+EPD_WriteCmd(0x12);
 
-    EPD_CheckStatus_inverted(100);
+EPD_CheckStatus_inverted(100);
 
-    // Set Analog Block control
-    EPD_WriteCmd(0x74);
-    EPD_WriteData(0x54);
-    // Set Digital Block control
-    EPD_WriteCmd(0x7E);
-    EPD_WriteData(0x3B);
+// Set Analog Block control
+EPD_WriteCmd(0x74);
+EPD_WriteData(0x54);
+// Set Digital Block control
+EPD_WriteCmd(0x7E);
+EPD_WriteData(0x3B);
 
-    // Booster soft start
-    EPD_WriteCmd(0x0C);
-    EPD_WriteData(0x8B);
-    EPD_WriteData(0x9C);
-    EPD_WriteData(0x96);
-    EPD_WriteData(0x0F);
+// Booster soft start
+EPD_WriteCmd(0x0C);
+EPD_WriteData(0x8B);
+EPD_WriteData(0x9C);
+EPD_WriteData(0x96);
+EPD_WriteData(0x0F);
 
-    // Driver output control
-    EPD_WriteCmd(0x01);
-    EPD_WriteData(0x28);
-    EPD_WriteData(0x01);
-    EPD_WriteData(0x01);
+// Driver output control
+EPD_WriteCmd(0x01);
+EPD_WriteData(0x28);
+EPD_WriteData(0x01);
+EPD_WriteData(0x01);
 
-    // Data entry mode setting
-    EPD_WriteCmd(0x11);
-    EPD_WriteData(0x01);
+// Data entry mode setting
+EPD_WriteCmd(0x11);
+EPD_WriteData(0x01);
 
-    // Set RAM X- Address Start/End
-    EPD_WriteCmd(0x44);
-    EPD_WriteData(0x00);
-    EPD_WriteData(0x13);
+// Set RAM X- Address Start/End
+// X end = 0x13 -> (0x13+1)*8 = 160 pixels, must match epd_height and canvas height
+EPD_WriteCmd(0x44);
+EPD_WriteData(0x00);
+EPD_WriteData(0x13);
 
     // Set RAM Y- Address Start/End
     EPD_WriteCmd(0x45);
